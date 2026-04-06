@@ -1,0 +1,3 @@
+subscription_id = "your-azure-subscription-id"
+project_name    = "fullstack-app"
+location        = "Southeast Asia"
