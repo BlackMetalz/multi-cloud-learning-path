@@ -7,7 +7,10 @@ Lộ trình học multi-cloud: Azure → AWS → GCP.
 ## Structure / Cấu trúc
 
 ```
-├── docs/                  Reference docs (en + vi)
+├── docs/
+│   ├── concepts/          Core concepts — learn once, apply everywhere
+│   ├── en/                Reference docs (English)
+│   └── vi/                Reference docs (Tiếng Việt)
 ├── projects/              Hands-on projects — 1 app, 3 clouds
 │   └── 01-fullstack-app/
 │       ├── app/           Shared application code
@@ -25,6 +28,12 @@ Lộ trình học multi-cloud: Azure → AWS → GCP.
 | # | Project | Azure | AWS | GCP |
 |---|---|---|---|---|
 | 01 | [Full-Stack App](projects/01-fullstack-app/) | 🟡 In Progress | ⬜ Later | ⬜ Later |
+
+## Concepts — Learn Once, Apply Everywhere
+
+| Concept | English | Tiếng Việt |
+|---|---|---|
+| Serverless Functions | [EN](docs/concepts/serverless-functions.md) | [VI](docs/concepts/serverless-functions.vi.md) |
 
 ## Docs / Tài liệu
 
