@@ -1,5 +1,93 @@
 # Azure CLI — Học Pattern, Không Cần Nhớ Từng Command
 
+## Cài đặt
+
+### macOS
+
+```bash
+# Homebrew (khuyên dùng)
+brew install azure-cli
+
+# Kiểm tra
+az version
+```
+
+### Ubuntu / Debian
+
+```bash
+# Script cài đặt từ Microsoft
+curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
+
+# Kiểm tra
+az version
+```
+
+### Tab Autocomplete
+
+```bash
+# Zsh — thêm vào ~/.zshrc
+autoload -U +X bashcompinit && bashcompinit
+source /opt/homebrew/etc/bash_completion.d/az    # macOS (Homebrew)
+source /etc/bash_completion.d/azure-cli           # Ubuntu
+
+# Bash — thêm vào ~/.bashrc
+source /opt/homebrew/etc/bash_completion.d/az    # macOS (Homebrew)
+source /etc/bash_completion.d/azure-cli           # Ubuntu
+```
+
+Restart shell hoặc `source ~/.zshrc`, sau đó:
+
+```
+az vm <TAB><TAB>     → create  delete  list  show  start  stop  restart ...
+az vm create --<TAB> → --name  --resource-group  --image  --size ...
+```
+```
+
+## Login & Thiết lập môi trường
+
+```bash
+# Đăng nhập qua browser
+az login
+
+# Đăng nhập bằng device code (SSH / remote / không có browser)
+az login --use-device-code
+
+# Đăng nhập bằng service principal (CI/CD)
+az login --service-principal -u <app-id> -p <password> --tenant <tenant-id>
+```
+
+```bash
+# Xem đang đăng nhập tài khoản nào
+az account show
+
+# Liệt kê tất cả subscriptions
+az account list --output table
+
+# Chuyển subscription
+az account set --subscription "my-subscription-name-or-id"
+```
+
+```bash
+# Set default resource group & location (khỏi lặp lại mỗi command)
+az configure --defaults group=rg-myapp location=southeastasia
+
+# Giờ 2 dòng này tương đương:
+az vm create --resource-group rg-myapp --location southeastasia --name my-vm ...
+az vm create --name my-vm ...   # dùng defaults
+
+# Xem defaults hiện tại
+az configure --list-defaults
+
+# Xoá defaults
+az configure --defaults group="" location=""
+```
+
+```bash
+# Environment variables (cách khác thay cho az configure)
+export AZURE_DEFAULTS_GROUP=rg-myapp
+export AZURE_DEFAULTS_LOCATION=southeastasia
+```
+
 ## Mental Model
 
 Azure CLI tuân theo 1 pattern duy nhất:
@@ -272,7 +360,6 @@ Verb-AzResource -ParameterName value
 ## Mẹo
 
 1. **`--output table`** — thêm vào mọi `list` command cho dễ đọc
-2. **`az interactive`** — chế độ autocomplete, gợi ý command khi gõ
-3. **`az find "keyword"`** — tìm command theo keyword khi không nhớ
-4. **`--query`** — filter output bằng JMESPath: `az vm list --query "[].{Name:name, State:powerState}"`
-5. **Resource Group = sandbox** — tạo 1 group riêng để thử, xong `az group delete` là sạch
+2. **`az find "keyword"`** — tìm command theo keyword khi không nhớ
+3. **`--query`** — filter output bằng JMESPath: `az vm list --query "[].{Name:name, State:powerState}"`
+4. **Resource Group = sandbox** — tạo 1 group riêng để thử, xong `az group delete` là sạch
