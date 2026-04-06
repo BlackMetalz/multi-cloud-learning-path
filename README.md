@@ -42,6 +42,7 @@ Lộ trình học multi-cloud: Azure → AWS → GCP.
 | Document | English | Tiếng Việt |
 |---|---|---|
 | Azure CLI | [EN](docs/azure/azure-cli.md) | [VI](docs/azure/azure-cli.vi.md) |
+| Storage Account | [EN](docs/azure/storage-account.md) | [VI](docs/azure/storage-account.vi.md) |
 
 ## Docs / Tài liệu
 
