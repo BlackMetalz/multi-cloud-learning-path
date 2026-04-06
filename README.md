@@ -34,6 +34,7 @@ Lộ trình học multi-cloud: Azure → AWS → GCP.
 | Concept | English | Tiếng Việt |
 |---|---|---|
 | Serverless Functions | [EN](docs/concepts/serverless-functions.md) | [VI](docs/concepts/serverless-functions.vi.md) |
+| Azure CLI | [EN](docs/concepts/azure-cli.md) | [VI](docs/concepts/azure-cli.vi.md) |
 
 ## Docs / Tài liệu
 
