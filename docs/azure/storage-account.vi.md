@@ -208,6 +208,184 @@ az storage container generate-sas \
   --output tsv
 ```
 
+## Network Security
+
+Kiểm soát truy cập storage ở tầng network.
+
+| Option | Mô tả |
+|---|---|
+| **Public endpoint** | Mặc định. Truy cập được từ internet. |
+| **Service Endpoint** | Traffic đi qua Azure backbone, vẫn dùng public IP |
+| **Private Endpoint** | Có private IP trong VNet. Không expose ra ngoài. |
+| **Firewall** | Whitelist IP hoặc VNet cụ thể |
+
+```bash
+# Chặn public access mặc định
+az storage account update \
+  --resource-group rg-myapp \
+  --name mystorageaccount \
+  --default-action Deny
+
+# Cho phép VNet cụ thể
+az storage account network-rule add \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --vnet-name myVnet \
+  --subnet default
+
+# Cho phép IP cụ thể
+az storage account network-rule add \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --ip-address 203.0.113.0/24
+```
+
+**Production:** Dùng Private Endpoint + Firewall. Đừng để public access mở.
+
+## Data Protection
+
+Bảo vệ khỏi xóa nhầm và hỏng data.
+
+| Feature | Mô tả |
+|---|---|
+| **Soft delete** | Khôi phục blob/container đã xóa (1-365 ngày) |
+| **Versioning** | Giữ mọi phiên bản của blob tự động |
+| **Point-in-time restore** | Rollback container về thời điểm cụ thể |
+| **Immutable storage** | WORM — data không thể sửa/xóa (compliance) |
+
+```bash
+# Bật soft delete cho blobs (7 ngày)
+az storage account blob-service-properties update \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --enable-delete-retention true \
+  --delete-retention-days 7
+
+# Bật versioning
+az storage account blob-service-properties update \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --enable-versioning true
+
+# Bật soft delete cho containers
+az storage account blob-service-properties update \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --enable-container-delete-retention true \
+  --container-delete-retention-days 7
+```
+
+## Encryption
+
+Mọi data đều được mã hóa. Bạn chọn ai quản lý key.
+
+| Option | Key do ai quản lý | Khi nào dùng |
+|---|---|---|
+| **Microsoft-managed keys** | Azure (mặc định) | Đa số workloads |
+| **Customer-managed keys (CMK)** | Bạn (qua Key Vault) | Compliance, cần toàn quyền |
+| **Infrastructure encryption** | Mã hóa 2 lớp | Bảo mật cao hơn |
+
+```bash
+# Xem encryption hiện tại
+az storage account show \
+  --resource-group rg-myapp \
+  --name mystorageaccount \
+  --query encryption
+
+# Bắt buộc HTTPS (mã hóa in transit)
+az storage account update \
+  --resource-group rg-myapp \
+  --name mystorageaccount \
+  --https-only true
+```
+
+In-transit: Luôn dùng HTTPS. Azure bật mặc định cho accounts mới.
+
+## Stored Access Policies
+
+Định nghĩa policy có thể tái sử dụng cho SAS tokens. Có thể thu hồi quyền mà không cần đổi key.
+
+```bash
+# Tạo policy trên container
+az storage container policy create \
+  --account-name mystorageaccount \
+  --container-name images \
+  --name readonly-policy \
+  --permissions r \
+  --expiry 2026-12-31
+
+# Tạo SAS dùng policy
+az storage container generate-sas \
+  --account-name mystorageaccount \
+  --name images \
+  --policy-name readonly-policy \
+  --output tsv
+
+# Thu hồi quyền bằng cách xóa policy
+az storage container policy delete \
+  --account-name mystorageaccount \
+  --container-name images \
+  --name readonly-policy
+```
+
+**Tại sao dùng policy?**
+- Thu hồi SAS token mà không cần xoay account key
+- Quản lý tập trung permissions và expiry
+- Tối đa 5 policies mỗi container
+
+## Lifecycle Management
+
+Tự động chuyển tier hoặc xóa blobs theo tuổi. Tiết kiệm chi phí.
+
+```bash
+# Tạo lifecycle policy (Cool sau 30 ngày, Archive sau 90, xóa sau 365)
+az storage account management-policy create \
+  --account-name mystorageaccount \
+  --resource-group rg-myapp \
+  --policy @policy.json
+```
+
+Ví dụ `policy.json`:
+```json
+{
+  "rules": [{
+    "name": "aging-rule",
+    "type": "Lifecycle",
+    "definition": {
+      "filters": { "blobTypes": ["blockBlob"] },
+      "actions": {
+        "baseBlob": {
+          "tierToCool": { "daysAfterModificationGreaterThan": 30 },
+          "tierToArchive": { "daysAfterModificationGreaterThan": 90 },
+          "delete": { "daysAfterModificationGreaterThan": 365 }
+        }
+      }
+    }
+  }]
+}
+```
+
+## AzCopy
+
+CLI tool copy data nhanh. Nhanh hơn `az storage blob upload` nhiều.
+
+```bash
+# Tải AzCopy
+curl -L https://aka.ms/downloadazcopy-v10-linux | tar xz
+
+# Login (mở browser)
+azcopy login
+
+# Upload folder
+azcopy copy "./local-folder" "https://mystorageaccount.blob.core.windows.net/container" --recursive
+
+# Download folder
+azcopy copy "https://mystorageaccount.blob.core.windows.net/container" "./local" --recursive
+
+# Sync (như rsync)
+azcopy sync "./local-folder" "https://mystorageaccount.blob.core.windows.net/container"
+```
+
 ## Static Website Hosting
 
 Blob Storage có thể host static website trực tiếp — không cần web server.

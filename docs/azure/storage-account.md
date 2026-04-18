@@ -208,6 +208,184 @@ az storage container generate-sas \
   --output tsv
 ```
 
+## Network Security
+
+Control how your storage is accessed at the network level.
+
+| Option | What it does |
+|---|---|
+| **Public endpoint** | Default. Accessible from internet. |
+| **Service Endpoint** | Traffic stays on Azure backbone, but still uses public IP |
+| **Private Endpoint** | Gets a private IP in your VNet. No public exposure. |
+| **Firewall** | Whitelist specific IPs or VNets |
+
+```bash
+# Deny public access by default
+az storage account update \
+  --resource-group rg-myapp \
+  --name mystorageaccount \
+  --default-action Deny
+
+# Allow specific VNet
+az storage account network-rule add \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --vnet-name myVnet \
+  --subnet default
+
+# Allow specific IP
+az storage account network-rule add \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --ip-address 203.0.113.0/24
+```
+
+**Production rule:** Use Private Endpoint + Firewall. Never leave public access open.
+
+## Data Protection
+
+Protect against accidental deletion and data corruption.
+
+| Feature | What it does |
+|---|---|
+| **Soft delete** | Recover deleted blobs/containers (1-365 days retention) |
+| **Versioning** | Keep all versions of a blob automatically |
+| **Point-in-time restore** | Rollback container to a specific moment |
+| **Immutable storage** | WORM — data cannot be modified or deleted (compliance) |
+
+```bash
+# Enable soft delete for blobs (7 days)
+az storage account blob-service-properties update \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --enable-delete-retention true \
+  --delete-retention-days 7
+
+# Enable versioning
+az storage account blob-service-properties update \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --enable-versioning true
+
+# Enable container soft delete
+az storage account blob-service-properties update \
+  --resource-group rg-myapp \
+  --account-name mystorageaccount \
+  --enable-container-delete-retention true \
+  --container-delete-retention-days 7
+```
+
+## Encryption
+
+All data is encrypted. You choose who manages the keys.
+
+| Option | Key managed by | Use case |
+|---|---|---|
+| **Microsoft-managed keys** | Azure (default) | Most workloads |
+| **Customer-managed keys (CMK)** | You (via Key Vault) | Compliance, full control |
+| **Infrastructure encryption** | Double encryption | Extra security layer |
+
+```bash
+# Check current encryption
+az storage account show \
+  --resource-group rg-myapp \
+  --name mystorageaccount \
+  --query encryption
+
+# Require HTTPS only (encryption in transit)
+az storage account update \
+  --resource-group rg-myapp \
+  --name mystorageaccount \
+  --https-only true
+```
+
+In-transit: Always use HTTPS. Azure enforces this by default on new accounts.
+
+## Stored Access Policies
+
+Define reusable policies for SAS tokens. Can revoke access without regenerating keys.
+
+```bash
+# Create a policy on a container
+az storage container policy create \
+  --account-name mystorageaccount \
+  --container-name images \
+  --name readonly-policy \
+  --permissions r \
+  --expiry 2026-12-31
+
+# Generate SAS using the policy
+az storage container generate-sas \
+  --account-name mystorageaccount \
+  --name images \
+  --policy-name readonly-policy \
+  --output tsv
+
+# Revoke access by deleting policy
+az storage container policy delete \
+  --account-name mystorageaccount \
+  --container-name images \
+  --name readonly-policy
+```
+
+**Why use policies?**
+- Revoke SAS tokens without rotating account keys
+- Centralized control over permissions and expiry
+- Max 5 policies per container
+
+## Lifecycle Management
+
+Auto-move or delete blobs based on age. Saves cost.
+
+```bash
+# Create lifecycle policy (move to Cool after 30 days, Archive after 90, delete after 365)
+az storage account management-policy create \
+  --account-name mystorageaccount \
+  --resource-group rg-myapp \
+  --policy @policy.json
+```
+
+Example `policy.json`:
+```json
+{
+  "rules": [{
+    "name": "aging-rule",
+    "type": "Lifecycle",
+    "definition": {
+      "filters": { "blobTypes": ["blockBlob"] },
+      "actions": {
+        "baseBlob": {
+          "tierToCool": { "daysAfterModificationGreaterThan": 30 },
+          "tierToArchive": { "daysAfterModificationGreaterThan": 90 },
+          "delete": { "daysAfterModificationGreaterThan": 365 }
+        }
+      }
+    }
+  }]
+}
+```
+
+## AzCopy
+
+Fast CLI tool for bulk data transfer. Much faster than `az storage blob upload`.
+
+```bash
+# Download AzCopy
+curl -L https://aka.ms/downloadazcopy-v10-linux | tar xz
+
+# Login (browser auth)
+azcopy login
+
+# Upload folder
+azcopy copy "./local-folder" "https://mystorageaccount.blob.core.windows.net/container" --recursive
+
+# Download folder
+azcopy copy "https://mystorageaccount.blob.core.windows.net/container" "./local" --recursive
+
+# Sync (like rsync)
+azcopy sync "./local-folder" "https://mystorageaccount.blob.core.windows.net/container"
+```
+
 ## Static Website Hosting
 
 Blob Storage can serve static websites directly — no web server needed.
