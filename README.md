@@ -43,6 +43,8 @@ Lộ trình học multi-cloud: Azure → AWS → GCP.
 |---|---|---|
 | Azure CLI | [EN](docs/azure/azure-cli.md) | [VI](docs/azure/azure-cli.vi.md) |
 | Storage Account | [EN](docs/azure/storage-account.md) | [VI](docs/azure/storage-account.vi.md) |
+| Virtual Machines | [EN](docs/azure/virtual-machines.md) | [VI](docs/azure/virtual-machines.vi.md) |
+| App Service | [EN](docs/azure/app-service.md) | [VI](docs/azure/app-service.vi.md) |
 
 ## Docs / Tài liệu
 
