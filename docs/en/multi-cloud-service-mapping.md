@@ -58,6 +58,7 @@ One Azure Storage Account holds multiple Blob Containers (plus File shares, Queu
 | Category | Azure | AWS | GCP | Self-Hosted | SaaS |
 |---|---|---|---|---|---|
 | IAM | Entra ID (AAD) + RBAC | IAM | IAM + Workspace | Keycloak | Auth0 / Okta |
+| Workload Identity | Managed Identity (SAMI / UAMI) | IAM Role (for EC2/Lambda) | Service Account | — | — |
 | Secret Management | Key Vault | Secrets Manager | Secret Manager | HashiCorp Vault | Doppler |
 
 ## Observability

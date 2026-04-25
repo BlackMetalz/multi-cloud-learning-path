@@ -1,4 +1,4 @@
-# Steps
+# Phase 1
 
 ### Prepare
 ```bash
@@ -60,6 +60,7 @@ ETag: "69d4f411-380"
 Last-Modified: Tue, 07 Apr 2026 12:09:53 GMT
 ```
 
+# Phase 2 (Actually phase 3 xD)
 ### Phase 3 - Add Storage Account (need to do this earlier than phase 2)
 
 New provider added. Need to upgrade
@@ -202,3 +203,53 @@ terraform init -migrate-state
 If will ask: "Do you want to copy existing state to the new backend?" → fucking yes
 
 After that, your state will be saved as `fullstack-app.tfstate` in container(bucket) tfstate
+
+### How does App Service access secrets without  storing credentials
+Managed Identity + KV. Visible: `az keyvault secret show`
+
+
+# Phase 3 - Key Vault
+
+### Register new resource provider
+```
+az provider register --namespace Microsoft.KeyVault --wait
+```
+
+Apply it.
+```bash
+terraform init   # pull provider hashicorp/time
+terraform plan -out=tfplan
+terraform apply "tfplan"
+```
+
+Expected output:
+```
+Apply complete! Resources: 6 added, 1 changed, 0 destroyed.
+
+Outputs:
+
+app_url = "https://app-fullstack-app.azurewebsites.net"
+key_vault_name = "kv-fullstackapp-l5vqvo"
+static_url = "https://stfullstackappl5vqvo.z23.web.core.windows.net/"
+storage_account_name = "stfullstackappl5vqvo"
+webapp_name = "app-fullstack-app"
+```
+
+### Verify after create
+
+Set variable
+```bash
+KV=$(terraform output -raw key_vault_name)
+APP=$(terraform output -raw webapp_name)
+RG="rg-fullstack-app"
+```
+
+- Show UAMI (user-assigned managed identity)
+`az identity show -n id-fullstack-app -g $RG --query '{principalId:principalId, clientId:clientId}'`
+
+- App Service phải đang dùng UAMI ("type": "UserAssigned) (không phải SystemAssigned)
+`az webapp identity show -n $APP -g $RG`
+
+### Summary
+- We use service account (common) instead of hard code user/password.
+- Rotate give no downtime and easy to rotate within 1 click.
