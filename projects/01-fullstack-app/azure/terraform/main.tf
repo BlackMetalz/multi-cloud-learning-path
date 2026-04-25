@@ -4,6 +4,18 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 4.0"
     }
+    random = {
+      source  = "hashicorp/random"
+      version = "~> 3.6"
+    }
+  }
+
+  # Remote backend
+  backend "azurerm" {
+    resource_group_name  = "rg-tfstate"
+    storage_account_name = "sttfstate139f04"
+    container_name       = "tfstate"
+    key                  = "fullstack-app.tfstate"
   }
 }
 
@@ -42,7 +54,7 @@ resource "azurerm_service_plan" "main" {
 }
 
 resource "azurerm_linux_web_app" "main" {
-  name                = "app-${var.project_name}"
+  name                = "app-${var.project_name}" # In case you don't know where `app-fullstack-app` comes from xD
   resource_group_name = azurerm_resource_group.main.name
   location            = azurerm_resource_group.main.location
   service_plan_id     = azurerm_service_plan.main.id
@@ -59,12 +71,40 @@ resource "azurerm_linux_web_app" "main" {
   }
 }
 
+# --- Step 4: Storage Account + Static Website ---
+
+resource "random_string" "suffix" {
+  length  = 6
+  special = false
+  upper   = false
+}
+
+resource "azurerm_storage_account" "static" {
+  name                     = "st${replace(var.project_name, "-", "")}${random_string.suffix.result}"
+  resource_group_name      = azurerm_resource_group.main.name
+  location                 = azurerm_resource_group.main.location
+  account_tier             = "Standard"
+  account_replication_type = "LRS"
+}
+
+resource "azurerm_storage_account_static_website" "static" {
+  storage_account_id = azurerm_storage_account.static.id
+  index_document     = "index.html"
+}
+
 # --- Outputs ---
 
 output "app_url" {
   value = "https://${azurerm_linux_web_app.main.default_hostname}"
 }
 
+output "static_url" {
+  value = azurerm_storage_account.static.primary_web_endpoint
+}
+
+output "storage_account_name" {
+  value = azurerm_storage_account.static.name
+}
+
 # TODO: Step 3 — Add PostgreSQL Flexible Server + Key Vault
-# TODO: Step 4 — Add Storage Account
 # TODO: Step 5 — Add Monitor + Log Analytics Workspace

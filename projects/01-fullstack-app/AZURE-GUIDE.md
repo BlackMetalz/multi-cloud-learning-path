@@ -59,3 +59,146 @@ Accept-Ranges: bytes
 ETag: "69d4f411-380"
 Last-Modified: Tue, 07 Apr 2026 12:09:53 GMT
 ```
+
+### Phase 3 - Add Storage Account (need to do this earlier than phase 2)
+
+New provider added. Need to upgrade
+```
+│ The following dependency selections recorded in the lock file are inconsistent with the current configuration:
+│   - provider registry.terraform.io/hashicorp/random: required by this configuration but no version is selected
+│ 
+│ To update the locked dependency selections to match a changed configuration, run:
+│   terraform init -upgrade
+```
+
+Plan it again and apply
+```bash
+terraform plan -out=tfplan
+terraform apply "tfplan"
+```
+
+Expected output
+```
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+app_url = "https://app-fullstack-app.azurewebsites.net"
+static_url = "https://stfullstackappl5vqvo.z23.web.core.windows.net/"
+storage_account_name = "stfullstackappl5vqvo"
+```
+
+### Upload index.html (storage account take from output)
+
+Hmm, we need to create `Storage Blob Data Contributor` role first.
+```bash
+az role assignment create \
+--assignee $(az ad signed-in-user show --query id -o tsv) \
+--role "Storage Blob Data Contributor" \
+--scope $(az storage account show -n $(terraform output -raw storage_account_name) --query id -o tsv)
+```
+
+If you not going to run that, you will not able to upload xD
+```
+You do not have the required permissions needed to perform this operation.
+Depending on your operation, you may need to be assigned one of the following roles:
+    "Storage Blob Data Owner"
+    "Storage Blob Data Contributor"
+    "Storage Blob Data Reader"
+    "Storage Queue Data Contributor"
+    "Storage Queue Data Reader"
+    "Storage Table Data Contributor"
+    "Storage Table Data Reader"
+```
+
+Run this from current terraform folder
+```bash
+az storage blob upload \
+--account-name $(terraform output -raw storage_account_name) \
+--container-name '$web' \ 
+--name index.html \
+--file ../../app/index.html \
+--auth-mode login \
+--overwrite
+```
+
+You may reliazed that '$web', it is special and predefined.
+
+| Name | Purpose |
+| -- | --|
+| $web | Static web hosting|
+| $logs| Storage analytics logs|
+| $blobchangefeed| Blob change feed events|
+
+Expected output
+```json
+Finished[#############################################################]  100.0000%
+{
+  "client_request_id": "client-request-id-here",
+  "content_md5": "content_md5_here/Gofg==",
+  "date": "2026-04-25T17:28:11+00:00",
+  "encryption_key_sha256": null,
+  "encryption_scope": null,
+  "etag": "\"some-hex-xD\"",
+  "lastModified": "2026-04-25T17:28:12+00:00",
+  "request_id": "request_id_here",
+  "request_server_encrypted": true,
+  "structured_body": null,
+  "version": "2026-02-06",
+  "version_id": null
+}
+```
+
+### Let's test
+
+You can get by static url in scenario you forgot: `terraform output -raw static_url`.
+Quick test: `curl -I $(terraform output -raw static_url)`
+
+### Ok, it is not related to AZ-104 but it is needed
+We need to create `remote backend`, because we did ignore terraform.tfstate already!
+```bash
+# We need a global unique name
+SA_BACKEND="sttfstate$(openssl rand -hex 3)" # sttfstate139f04
+
+# Create resource group named "rg-tfstate" in location southeastasia xD
+# We need to create this manually, this is where we store remote tfstate, we will get fucked if we add this resourceGroup via terraform LOL
+az group create -n rg-tfstate -l southeastasia
+
+# Create storage account to contain Terraform StateState. This is step after we create resource Group above
+az storage account create \
+--name $SA_BACKEND \
+--resource-group rg-tfstate \
+--location southeastasia \
+--sku Standard_LRS \
+--allow-blob-public-access false \
+--min-tls-version TLS1_2
+
+# Create container "tfstate" inside storage account
+# In case you don't know what the fuck is "container". It is fucking bucket in AWS/GCP
+az storage container create \
+--name tfstate \
+--account-name $SA_BACKEND \
+--auth-mode login
+```
+
+### Update remote backend in main.tf
+
+```hcl
+  # Remote backend
+  backend "azurerm" {
+    resource_group_name  = "rg-tfstate"
+    storage_account_name = "sttfstate139f04"   # ← thay bằng tên SA_BACKEND ở trên
+    container_name       = "tfstate"
+    key                  = "fullstack-app.tfstate"
+  }
+```
+
+### Migrate state local --> Azure
+
+```bash
+terraform init -migrate-state
+```
+
+If will ask: "Do you want to copy existing state to the new backend?" → fucking yes
+
+After that, your state will be saved as `fullstack-app.tfstate` in container(bucket) tfstate

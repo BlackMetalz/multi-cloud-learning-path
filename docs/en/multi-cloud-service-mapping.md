@@ -22,6 +22,18 @@ Equivalent service mapping across Azure, AWS, and GCP.
 | Block Storage | Managed Disks | EBS | Persistent Disk | — | — |
 | File Storage | Azure Files | EFS | Filestore | NFS | — |
 
+### Object Storage Hierarchy
+
+Azure has an extra level compared to AWS/GCP — `Storage Account` has no direct equivalent.
+
+| Level | Azure | AWS | GCP |
+|---|---|---|---|
+| Account / Project | Storage Account | (AWS account) | (GCP project) |
+| Group ("bucket") | Container | Bucket | Bucket |
+| File | Blob | Object | Object |
+
+One Azure Storage Account holds multiple Blob Containers (plus File shares, Queues, Tables). AWS/GCP buckets sit directly under the account/project.
+
 ## Database
 
 | Category | Azure | AWS | GCP | Self-Hosted | SaaS |

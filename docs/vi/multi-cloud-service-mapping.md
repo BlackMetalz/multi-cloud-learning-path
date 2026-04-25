@@ -22,6 +22,18 @@ Bảng mapping các dịch vụ tương đương giữa Azure, AWS và GCP.
 | Block Storage | Managed Disks | EBS | Persistent Disk | — | — |
 | File Storage | Azure Files | EFS | Filestore | NFS | — |
 
+### Phân cấp Object Storage
+
+Azure có thêm 1 cấp so với AWS/GCP — `Storage Account` không có khái niệm tương đương trực tiếp.
+
+| Cấp | Azure | AWS | GCP |
+|---|---|---|---|
+| Account / Project | Storage Account | (AWS account) | (GCP project) |
+| Nhóm ("bucket") | Container | Bucket | Bucket |
+| File | Blob | Object | Object |
+
+1 Azure Storage Account chứa nhiều Blob Container (và File share, Queue, Table). AWS/GCP thì bucket nằm thẳng dưới account/project.
+
 ## Database
 
 | Category | Azure | AWS | GCP | Self-Hosted | SaaS |
