@@ -14,6 +14,13 @@ Subscription Owner ≠ Data plane access. Bro tạo được storage account (co
 
 - "How does an Azure App Service access Key Vault secrets without storing credentials?" → MI (Managed Identity) + Key Vault reference.
 - "Difference between Owner role and Key Vault Administrator?" → Control plane (Owner = manage vault) vs data plane (KV Admin = manage secrets/keys/certs)
+
+### Concept for AZ-104 unlocked in Phase 4 - fullstack app
 - "Subscription Owner có đọc được KV secret không?" → Không (Owner = control plane only). Phải có role data plane (Key Vault Secrets User/Officer/Administrator).
 - Khi nào UAMI vs SAMI?" → Reuse identity giữa nhiều resources = UAMI. Throwaway 1-1 = SAMI.
 - "Legacy access policy vs RBAC trên KV?" → RBAC mới hơn, AAD-based, granular hơn, Microsoft khuyên dùng. Bro đang dùng RBAC (rbac_authorization_enabled = true).
+
+### Concept for AZ-104 unlocked in Phase 5 - fullstack app
+- Where do you query App Service logs centrally across multiple apps?" → Log Analytics workspace + diagnostic setting
+- "Difference between Activity Log and Diagnostic Logs?" → Activity = control plane (who created what), Diagnostic = resource-level (HTTP requests, blob reads). Cả 2 đều ship vào Log Analytics được
+- "Cost driver chính của Log Analytics?" → GB ingested per day + retention days. Production hay dùng daily_quota_gb để cap

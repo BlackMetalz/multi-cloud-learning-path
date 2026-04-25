@@ -253,3 +253,58 @@ RG="rg-fullstack-app"
 ### Summary
 - We use service account (common) instead of hard code user/password.
 - Rotate give no downtime and easy to rotate within 1 click.
+
+# Phase 4 - Monitor + Log Analytics
+
+### Register resource provider
+```bash
+az provider register --namespace Microsoft.OperationalInsights --wait
+az provider register --namespace Microsoft.Insights --wait
+```
+
+Plan and Apply it:
+```
+terraform plan -out=tfplan
+terraform apply tfplan
+```
+
+### Generate Traffic
+
+Setup this env
+```bash
+APP_URL=$(terraform output -raw app_url)
+STATIC_URL=$(terraform output -raw static_url)
+```
+
+Create sample traffic (30 requests)
+```bash
+for i in {1..30}; do
+    curl -s -o /dev/null -w "%{http_code} " $APP_URL
+    curl -s -o /dev/null -w "%{http_code} " $APP_URL/notfound-$i
+    curl -s -o /dev/null -w "%{http_code} " $STATIC_URL
+done
+echo
+```
+
+Here is how we view log in Portal -> Log Analytics workspace
+
+![View log from portal](../../images/azure/01.png)
+
+There some raw query, but we don't need to remember it for now. We need to remember below:
+
+1. App Service Logs
+| Table | Content | When |
+| -- | -- | -- |
+| AppServiceHTTPLogs | HTTP request/response: URL, status code, latency, IP client, User-Agent | Debug 4xx/5xx, phân tích traffic, tìm slow request|
+| AppServiceConsoleLogs | Output từ stdout/stderr của app (console.log, print...) | Debug logic app, xem error stack trace |
+| AppServicePlatformLogs | Log của bản thân platform: deployment, scaling, restart, health check | Debug khi app crash/restart bất thường, container không start|
+
+2. Storage logs
+| Table | Content | 
+| -- | -- |
+| StorageBlobLogs | Mọi thao tác Blob: ai (AuthenticationType), từ đâu (CallerIpAddress), làm gì (OperationName: GetBlob, PutBlob...), kết quả (StatusCode) |
+
+3. Metrics
+| Table | Content | 
+| -- | -- |
+| AzureMetrics | Số liệu định lượng theo thời gian: CPU%, Memory, Request count, Response time, Bytes In/Out |

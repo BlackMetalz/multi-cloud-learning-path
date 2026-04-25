@@ -155,6 +155,59 @@ resource "azurerm_role_assignment" "webapp_kv_secrets_user" {
   principal_id         = azurerm_user_assigned_identity.webapp.principal_id
 }
 
+# --- Step 5: Monitor + Log Analytics ---
+
+resource "azurerm_log_analytics_workspace" "main" {
+  name                = "log-${var.project_name}"
+  location            = azurerm_resource_group.main.location
+  resource_group_name = azurerm_resource_group.main.name
+  sku                 = "PerGB2018"
+  retention_in_days   = 30
+}
+
+resource "azurerm_monitor_diagnostic_setting" "webapp" {
+  name                       = "diag-webapp"
+  target_resource_id         = azurerm_linux_web_app.main.id
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+
+  enabled_log {
+    category = "AppServiceHTTPLogs"
+  }
+  enabled_log {
+    category = "AppServiceConsoleLogs"
+  }
+  enabled_log {
+    category = "AppServiceAppLogs"
+  }
+  enabled_log {
+    category = "AppServicePlatformLogs"
+  }
+
+  enabled_metric {
+    category = "AllMetrics"
+  }
+}
+
+resource "azurerm_monitor_diagnostic_setting" "storage_blob" {
+  name                       = "diag-storage-blob"
+  target_resource_id         = "${azurerm_storage_account.static.id}/blobServices/default"
+  log_analytics_workspace_id = azurerm_log_analytics_workspace.main.id
+
+  enabled_log {
+    category = "StorageRead"
+  }
+  enabled_log {
+    category = "StorageWrite"
+  }
+  enabled_log {
+    category = "StorageDelete"
+  }
+
+  enabled_metric {
+    category = "Transaction"
+  }
+}
+
 # --- Outputs ---
 
 output "app_url" {
@@ -177,5 +230,12 @@ output "webapp_name" {
   value = azurerm_linux_web_app.main.name
 }
 
+output "log_workspace_name" {
+  value = azurerm_log_analytics_workspace.main.name
+}
+
+output "log_workspace_id" {
+  value = azurerm_log_analytics_workspace.main.workspace_id
+}
+
 # TODO: Step 3 — Add PostgreSQL Flexible Server (Key Vault done above)
-# TODO: Step 5 — Add Monitor + Log Analytics Workspace
