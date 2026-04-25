@@ -9,7 +9,8 @@ terraform {
 
 provider "azurerm" {
   features {}
-  subscription_id = var.subscription_id
+  subscription_id                 = var.subscription_id
+  resource_provider_registrations = "none"
 }
 
 variable "subscription_id" {
@@ -51,6 +52,10 @@ resource "azurerm_linux_web_app" "main" {
       docker_image_name   = "nginx:alpine"
       docker_registry_url = "https://index.docker.io"
     }
+
+    # Free plan: https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/linux_web_app#always_on-1
+    # always_on must be explicitly set to false when using Free, F1, D1, or Shared Service Plans.
+    always_on           = false
   }
 }
 

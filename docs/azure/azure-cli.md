@@ -60,6 +60,14 @@ az login --service-principal -u <app-id> -p <password> --tenant <tenant-id>
 # Check who you are
 az account show
 
+# more detail bro
+```
+az account show --query '{name:name, id:id, user:user.name}' -o table
+Name                  User
+--------------------  ------------------------
+Azure subscription 1  your-account@outlook.com.vn
+```
+
 # List all subscriptions
 az account list --output table
 
