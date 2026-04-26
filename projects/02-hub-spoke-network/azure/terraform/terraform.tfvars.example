@@ -1,0 +1,7 @@
+subscription_id = "your-azure-subscription-id"
+project_name    = "hub-spoke-net"
+location        = "Southeast Asia"
+
+# Toggle ON only when actively learning these — destroy after.
+enable_bastion     = false # ~$4.5/day
+enable_app_gateway = false # ~$10/day

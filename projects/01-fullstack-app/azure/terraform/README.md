@@ -4,7 +4,7 @@ Update `terraform.tfvars` with subscription_id. But you can remove it as well, T
 
 ```bash
 git clone <repo> && cd projects/01-fullstack-app/azure/terraform
-az login
+az login --use-device-code
 terraform init
 terraform plan
 ```

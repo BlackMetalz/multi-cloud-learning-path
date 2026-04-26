@@ -31,3 +31,25 @@ Subscription Owner ≠ Data plane access. Bro tạo được storage account (co
 - "DBA cần đọc password Postgres để debug, không có quyền edit terraform — làm sao?" → KV access policy + role Key Vault Secrets User
 - "Connection failure 'no pg_hba.conf entry'?" → Thường là firewall rule, không phải pg_hba (Azure managed file đó cho mình)
 - "Single Server vs Flexible Server?" → Single deprecated 2025, Flexible mới hơn — luôn chọn Flexible
+
+### Hub-spoke
+
+hub-spoke là kiểu “một trung tâm, nhiều vệ tinh” để mạng Azure dễ quản lý, an toàn, và scale tốt hơn.
+
+Ví dụ:
+- Web app ở 1 spoke.
+- Database ở 1 spoke khác.
+- Firewall, VPN, DNS nằm ở hub.
+
+Khi web app muốn nói chuyện với database:
+- Nó không “quẹo” qua hết các mạng khác.
+- Nó đi qua hub, rồi hub kiểm soát xem có cho phép không.
+
+Vì sao người ta thích kiểu này
+- Dễ quản lý: mọi thứ quan trọng gom về một chỗ.
+- An toàn hơn: hub đứng giữa để chặn/lọc traffic.
+- Dễ mở rộng: có thêm app mới thì thêm 1 spoke mới, không làm rối toàn mạng.
+- Hợp cho công ty lớn: nhiều team, nhiều môi trường, nhiều app.
+
+Túm cái váy lại: Hub-spoke = 1 trung tâm quản lý + nhiều mạng con tách biệt. Giống như một thành phố có đường vành đai và các khu dân cư nối vào trung tâm, chứ không cần mọi khu nối trực tiếp với nhau.
+
