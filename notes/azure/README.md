@@ -53,3 +53,80 @@ Vì sao người ta thích kiểu này
 
 Túm cái váy lại: Hub-spoke = 1 trung tâm quản lý + nhiều mạng con tách biệt. Giống như một thành phố có đường vành đai và các khu dân cư nối vào trung tâm, chứ không cần mọi khu nối trực tiếp với nhau.
 
+### Resource project 02 - hub and spoke
+Hub-Spoke project — sẽ tạo những gì
+Sơ đồ tổng thể
+
+┌─────────────────────── Resource Group: rg-<project> ───────────────────────┐
+│                                                                            │
+│   ┌─────── VNet HUB (vnet-hub) ───────┐    ┌── VNet SPOKE (vnet-spoke) ──┐ │
+│   │                                   │    │                             │ │
+│   │  AzureBastionSubnet ─── Bastion   │◄──►│  snet-vm  ─── VM (Ubuntu)   │ │
+│   │       (+ Public IP)               │peer│              + NIC + NSG    │ │
+│   │                                   │    │                             │ │
+│   │  snet-appgw ─── App Gateway v2    │    │  snet-pe  ─── PrivateEndpoint─→ Storage Account
+│   │              (+ Public IP)        │    │              + Private DNS  │ │   (public access OFF)
+│   └───────────────────────────────────┘    └─────────────────────────────┘ │
+│                                                                            │
+│   Log Analytics Workspace ◄── Diagnostic settings (NSG, AppGW)             │
+└────────────────────────────────────────────────────────────────────────────┘
+
+
+Liệt kê resource theo file:
+
+`main.tf` — foundation
+- random_string.suffix — 6 ký tự random, để tên storage account globally unique.
+- data.azurerm_client_config — đọc tenant/subscription hiện tại.
+- data.http.myip — gọi api.ipify.org lấy public IP của bro → nhét vào NSG cho phép SSH.
+- azurerm_resource_group.main — RG chứa tất cả.
+
+`network.tf` — xương sống
+- 2 VNet: vnet-hub, vnet-spoke.
+- 4 Subnet: AzureBastionSubnet, snet-appgw (trong hub) | snet-vm, snet-pe (trong spoke; PE subnet tắt network policies).
+- 2 VNet Peering (hub↔spoke, 2 chiều).
+- 1 NSG trên snet-vm với 3 rule: SSH từ IP của bro, HTTP từ VirtualNetwork, HTTP từ GatewayManager (cho AppGW probe).
+- 1 association NSG ↔ subnet vm.
+
+`vm.tf` — workload
+- tls_private_key — sinh SSH key 4096-bit (không dùng ~/.ssh của máy).
+- azurerm_network_interface — NIC private-only, không public IP.
+- azurerm_linux_virtual_machine — Ubuntu 24.04, var.vm_size, cloud-init cài nginx + landing page, SystemAssigned identity.
+
+`bastion.tf` — toggle enable_bastion
+- azurerm_public_ip (Standard, Static).
+- azurerm_bastion_host SKU Basic — SSH/RDP qua portal, không cần public IP trên VM.
+
+`appgw.tf` — toggle enable_app_gateway
+- azurerm_public_ip cho AppGW.
+- azurerm_application_gateway Standard_v2 (capacity 1) — listener HTTP:80 → backend pool là private IP của VM.
+
+`storage.tf` + `private_endpoint.tf` — private storage
+- azurerm_storage_account Standard_LRS, public_network_access_enabled = false → chỉ vào được qua PE.
+- azurerm_private_dns_zone privatelink.blob.core.windows.net.
+- azurerm_private_dns_zone_virtual_network_link — gắn DNS zone vào spoke VNet.
+- azurerm_private_endpoint — PE cho subresource blob, auto register vào private DNS zone.
+
+
+`monitor.tf` — observability
+- azurerm_log_analytics_workspace (PerGB2018).
+- azurerm_monitor_diagnostic_setting cho NSG (luôn bật) và AppGW (chỉ khi enable_app_gateway).
+
+Tổng số resource (khi bật full toggles)
+|Nhóm  |Sốresource|
+| -- | -- |
+|RG + random + data sources | 1 RG|
+| Networking  | 2 VNet + 4 subnet + 2 peering + 1 NSG + 1 NSG-assoc = 10|
+|VM  |1 NIC + 1 VM + 1 TLS key = 3|
+|Bastion (toggle)  |1 PIP + 1 Bastion = 2 |
+|AppGW (toggle)|  1 PIP + 1 AppGW = 2|
+|Storage + PE  | 1 SA + 1 DNS zone + 1 link + 1 PE = 4|
+|Monitoring  |1 LAW + 1 diag NSG + 1 diag AppGW = 3|
+|Tổng  |~25 resource (full bật)|
+
+
+Điểm thiết kế đáng chú ý
+1. VM không có public IP — access bắt buộc qua Bastion (admin) hoặc AppGW (HTTP traffic).
+2. Storage tắt public access hoàn toàn — VM truy cập blob qua Private Endpoint + Private DNS, FQDN *.blob.core.windows.net resolve về private IP trong spoke.
+3. Toggle enable_bastion / enable_app_gateway — tiết kiệm tiền khi không học (Bastion ~$0.19/h, AppGW v2 ~$10/ngày).
+4. NSG rule "AllowSSHFromMyIP" — tự lấy IP của bro qua data.http, dev-only; production thật phải tắt và chỉ dùng Bastion.
+5. Hub-spoke peering 2 chiều nhưng allow_gateway_transit = false → đây là pattern peering đơn giản, không phải topology có VPN/ER gateway ở hub.

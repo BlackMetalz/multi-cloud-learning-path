@@ -78,7 +78,7 @@ az network vnet subnet show -g rg-hub-spoke-net --vnet-name vnet-spoke-hub-spoke
 ```
 
 ### Enable Bastion
-- change to `enable_bastion     = true`
+- change to `enable_bastion     = true`. It may takes 10 minutes
 
 Expected output:
 ```
@@ -95,7 +95,12 @@ vm_private_ip = "10.1.1.4"
 vm_ssh_private_key_pem = <sensitive>
 ```
 
-Oke, connect to it via Azure Portal → VM vm-hub-spoke-net-xxx → Connect → Bastion. Username azureuser. SSH Private Key select from this file:
+
+Oke, connect to it via Azure Portal → VM vm-hub-spoke-net-xxx → Connect → Bastion. 
+
+![Azure Portal - VM](../../images/azure/03.png)
+
+Username azureuser. SSH Private Key select from this file:
 ```bash
 terraform output -raw vm_ssh_private_key_pem > ~/Desktop/vm.pem
 ```
@@ -112,4 +117,38 @@ A picture for easy imagination:
 
 ![bastion](../../images/azure/02.png)
 
+### Disable bastion + Enable app gateway
 
+- Edit terraform.tfvars: enable_bastion = false, enable_app_gateway = true. Terraform plan and apply. It may takes 15 minutes
+
+```
+# Plan
+Plan: 3 to add, 0 to change, 2 to destroy.
+
+Changes to Outputs:
+  + appgw_public_ip        = (known after apply)
+  - bastion_name           = "bas-hub-spoke-net" -> null
+# Apply
+Apply complete! Resources: 3 added, 0 changed, 2 destroyed.
+
+Outputs:
+
+appgw_public_ip = "hidden-xD"
+log_workspace_name = "log-hub-spoke-net"
+storage_account_name = "sthubspokenetu2rzgs"
+storage_blob_pe_ip = "10.1.2.4"
+vm_name = "vm-hub-spoke-net-u2rzgs"
+vm_private_ip = "10.1.1.4"
+vm_ssh_private_key_pem = <sensitive>
+```
+
+Verify:
+```bash
+APPGW_IP=$(terraform output -raw appgw_public_ip)
+curl http://$APPGW_IP
+# expect: 
+# <h1>Hello from VM behind hub-spoke</h1>
+# <p>Hostname: $(hostname)</p>
+```
+
+request from Internet → AppGW (hub) → peering → VM private IP (spoke) → nginx.
