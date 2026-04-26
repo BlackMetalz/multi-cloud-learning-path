@@ -46,6 +46,10 @@ terraform apply "tfplan"
 
 It would take about 5-10 minutes ì ưe disable bastion and app-gateway. Expected output
 ```
+Apply complete! Resources: 21 added, 0 changed, 0 destroyed.
+
+Outputs:
+
 log_workspace_name = "log-hub-spoke-net"
 storage_account_name = "sthubspokenetu2rzgs"
 storage_blob_pe_ip = "10.1.2.4"
@@ -72,3 +76,40 @@ vm-hub-spoke-net-u2rzgs  rg-hub-spoke-net  southeastasia
 az network vnet subnet show -g rg-hub-spoke-net --vnet-name vnet-spoke-hub-spoke-net -n snet-vm --query networkSecurityGroup.id -o tsv
 /subscriptions/your-subscription-id/resourceGroups/rg-hub-spoke-net/providers/Microsoft.Network/networkSecurityGroups/nsg-vm-hub-spoke-net
 ```
+
+### Enable Bastion
+- change to `enable_bastion     = true`
+
+Expected output:
+```
+Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
+
+Outputs:
+
+bastion_name = "bas-hub-spoke-net"
+log_workspace_name = "log-hub-spoke-net"
+storage_account_name = "sthubspokenetu2rzgs"
+storage_blob_pe_ip = "10.1.2.4"
+vm_name = "vm-hub-spoke-net-u2rzgs"
+vm_private_ip = "10.1.1.4"
+vm_ssh_private_key_pem = <sensitive>
+```
+
+Oke, connect to it via Azure Portal → VM vm-hub-spoke-net-xxx → Connect → Bastion. Username azureuser. SSH Private Key select from this file:
+```bash
+terraform output -raw vm_ssh_private_key_pem > ~/Desktop/vm.pem
+```
+
+Inside VM:
+
+```bash
+curl http://localhost # Return landing page
+ip a # Return ip of this VM
+nslookup <storage_account_name>.blob.core.windows.net # return ip Storage account IP
+```
+
+A picture for easy imagination:
+
+![bastion](../../images/azure/02.png)
+
+
