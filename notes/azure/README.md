@@ -24,3 +24,10 @@ Subscription Owner ≠ Data plane access. Bro tạo được storage account (co
 - Where do you query App Service logs centrally across multiple apps?" → Log Analytics workspace + diagnostic setting
 - "Difference between Activity Log and Diagnostic Logs?" → Activity = control plane (who created what), Diagnostic = resource-level (HTTP requests, blob reads). Cả 2 đều ship vào Log Analytics được
 - "Cost driver chính của Log Analytics?" → GB ingested per day + retention days. Production hay dùng daily_quota_gb để cap
+
+### Concept for AZ-104 unlocked in Phase 6 - psql
+
+- "How to give an Azure VM/App Service access to Postgres without IP whitelisting?" → Private Endpoint + VNet integration
+- "DBA cần đọc password Postgres để debug, không có quyền edit terraform — làm sao?" → KV access policy + role Key Vault Secrets User
+- "Connection failure 'no pg_hba.conf entry'?" → Thường là firewall rule, không phải pg_hba (Azure managed file đó cho mình)
+- "Single Server vs Flexible Server?" → Single deprecated 2025, Flexible mới hơn — luôn chọn Flexible

@@ -12,6 +12,10 @@ terraform {
       source  = "hashicorp/time"
       version = "~> 0.11"
     }
+    http = {
+      source  = "hashicorp/http"
+      version = "~> 3.4"
+    }
   }
 
   # Remote backend
@@ -208,6 +212,73 @@ resource "azurerm_monitor_diagnostic_setting" "storage_blob" {
   }
 }
 
+# --- Bonus: PostgreSQL Flexible Server ---
+
+resource "random_password" "postgres" {
+  length           = 24
+  special          = true
+  override_special = "!#$%&*()-_=+"
+}
+
+resource "azurerm_key_vault_secret" "postgres_password" {
+  name         = "postgres-admin-password"
+  value        = random_password.postgres.result
+  key_vault_id = azurerm_key_vault.main.id
+
+  depends_on = [time_sleep.wait_for_rbac]
+}
+
+# Get current public IP so we can psql from this machine.
+data "http" "myip" {
+  url = "https://api.ipify.org"
+}
+
+resource "azurerm_postgresql_flexible_server" "main" {
+  name                = "psql-${var.project_name}-${random_string.suffix.result}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+
+  version                = "16"
+  administrator_login    = "psqladmin"
+  administrator_password = random_password.postgres.result
+
+  # This is how sku name works in Terraform: https://github.com/hashicorp/terraform-provider-azurerm/issues/21522#issuecomment-2076534083
+  sku_name     = "B_Standard_B1ms" # cheapest burstable, ~$13/mo if left running
+  storage_mb   = 32768 # Minimum, define by Azure, we can not set lower =.=
+  storage_tier = "P4"
+  zone         = "1"
+
+  public_network_access_enabled = true
+
+  authentication {
+    password_auth_enabled = true
+  }
+}
+
+resource "azurerm_postgresql_flexible_server_firewall_rule" "myip" {
+  name             = "allow-my-ip"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = chomp(data.http.myip.response_body)
+  end_ip_address   = chomp(data.http.myip.response_body)
+}
+
+# Special "0.0.0.0" rule = "allow Azure services" (App Service can reach DB).
+# DEV ONLY: "0.0.0.0" is a magic value = "allow ALL Azure services
+# from ANY tenant" — relies on auth alone. Production should use Private Endpoint + VNet integration instead.
+resource "azurerm_postgresql_flexible_server_firewall_rule" "azure_services" {
+  name             = "allow-azure-services"
+  server_id        = azurerm_postgresql_flexible_server.main.id
+  start_ip_address = "0.0.0.0"
+  end_ip_address   = "0.0.0.0"
+}
+
+resource "azurerm_postgresql_flexible_server_database" "demo" {
+  name      = "demo"
+  server_id = azurerm_postgresql_flexible_server.main.id
+  collation = "en_US.utf8"
+  charset   = "UTF8"
+}
+
 # --- Outputs ---
 
 output "app_url" {
@@ -238,4 +309,10 @@ output "log_workspace_id" {
   value = azurerm_log_analytics_workspace.main.workspace_id
 }
 
-# TODO: Step 3 — Add PostgreSQL Flexible Server (Key Vault done above)
+output "postgres_fqdn" {
+  value = azurerm_postgresql_flexible_server.main.fqdn
+}
+
+output "postgres_admin_login" {
+  value = azurerm_postgresql_flexible_server.main.administrator_login
+}

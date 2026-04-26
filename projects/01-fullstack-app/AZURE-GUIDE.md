@@ -308,3 +308,88 @@ There some raw query, but we don't need to remember it for now. We need to remem
 | Table | Content | 
 | -- | -- |
 | AzureMetrics | Số liệu định lượng theo thời gian: CPU%, Memory, Request count, Response time, Bytes In/Out |
+
+# Phase 5 - Postgres
+
+### Register resource provider
+
+```bash
+az provider register --namespace Microsoft.DBforPostgreSQL --wait
+```
+
+### SKU Namming convention
+
+Format: `<tier>_Standard_<vm-size>`
+
+| Tier | Prefix | Use Case |
+| -- | -- | -- |
+| Burstable | `B_` | Dev/test, low traffic — rẻ nhất |
+| General Purpose| `GP_`| Production thông thường |
+| Memory Optimized| `MO_` | Workload nặng RAM |
+
+
+### Init and Apply
+```bash
+terraform init   # pull hashicorp/http
+terraform plan -out=tfplan
+terraform apply tfplan
+```
+
+It would take around 5-8 minutes. And Outputs will be what we wrote in terraform xD
+
+### Verify
+
+
+- Gather information
+```bash
+PG_FQDN=$(terraform output -raw postgres_fqdn)
+PG_USER=$(terraform output -raw postgres_admin_login)
+KV=$(terraform output -raw key_vault_name)
+PGPASSWORD=$(az keyvault secret show --vault-name $KV --name postgres-admin-password --query value -o tsv)
+echo "Password length: ${#PGPASSWORD}" # Check password length.
+```
+
+- Connect
+```bash
+PGPASSWORD=$PGPASSWORD psql -h $PG_FQDN -U $PG_USER -d demo -c "SELECT version();"
+```
+Expected output:
+```
+                                    version                                    
+-------------------------------------------------------------------------------
+ PostgreSQL 16.13 on x86_64-pc-linux-gnu, compiled by gcc (GCC) 13.2.0, 64-bit
+(1 row)
+```
+
+- Create table + Insert Data + Query (If you don't have psql client: `apt install postgresql-client`)
+```bash
+PGPASSWORD=$PGPASSWORD psql -h $PG_FQDN -U $PG_USER -d demo <<'EOF'
+CREATE TABLE IF NOT EXISTS notes (id SERIAL, msg TEXT, created_at TIMESTAMPTZ DEFAULT NOW());
+INSERT INTO notes (msg) VALUES ('Hello from Azure Postgres'), ('Password came from Key Vault'), ('Day 5 of multi-cloud lab');
+SELECT * FROM notes;
+EOF
+```
+
+Expected output:
+```
+ id |             msg              |          created_at           
+----+------------------------------+-------------------------------
+  1 | Hello from Azure Postgres    | 2026-04-26 01:16:24.828202+00
+  2 | Password came from Key Vault | 2026-04-26 01:16:24.828202+00
+  3 | Day 5 of multi-cloud lab     | 2026-04-26 01:16:24.828202+00
+(3 rows)
+```
+
+- Verify firewall rules
+```bash
+az postgres flexible-server firewall-rule list \
+    --name $(terraform output -raw postgres_fqdn | cut -d. -f1) \
+    --resource-group rg-fullstack-app -o table
+```
+Expected output
+```
+EndIpAddress    Name                  ResourceGroup     StartIpAddress
+--------------  --------------------  ----------------  ----------------
+my-ip-here      allow-my-ip           rg-fullstack-app  my-ip-here
+0.0.0.0         allow-azure-services  rg-fullstack-app  0.0.0.0
+```
