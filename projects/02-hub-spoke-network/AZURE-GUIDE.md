@@ -44,7 +44,7 @@ terraform plan -out=tfplan
 terraform apply "tfplan"
 ```
 
-It would take about 5-10 minutes ì ưe disable bastion and app-gateway. Expected output
+It would take about 5-10 minutes if we disable bastion and app-gateway. Expected output
 ```
 Apply complete! Resources: 21 added, 0 changed, 0 destroyed.
 
@@ -113,7 +113,7 @@ ip a # Return ip of this VM
 nslookup <storage_account_name>.blob.core.windows.net # return ip Storage account IP
 ```
 
-A picture for easy imagination:
+A picture for visualization:
 
 ![bastion](../../images/azure/02.png)
 
@@ -152,3 +152,13 @@ curl http://$APPGW_IP
 ```
 
 request from Internet → AppGW (hub) → peering → VM private IP (spoke) → nginx.
+
+### Finally, destroy resource
+
+```bash
+terraform destroy
+# Expected output: 
+# Destroy complete! Resources: 24 destroyed.
+```
+
+AppGW(hub) is fucking expensive: 10$/day

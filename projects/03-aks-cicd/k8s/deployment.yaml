@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello
+  labels:
+    app: hello
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: hello
+  template:
+    metadata:
+      labels:
+        app: hello
+        # Required for Workload Identity to inject the federated token.
+        azure.workload.identity/use: "true"
+    spec:
+      serviceAccountName: demo-sa
+      containers:
+        - name: hello
+          # REPLACE_ACR is sed-substituted by README step 2 / GHA workflow.
+          image: REPLACE_ACR/hello:v1
+          ports:
+            - containerPort: 80
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

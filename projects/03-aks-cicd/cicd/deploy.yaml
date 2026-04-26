@@ -1,0 +1,80 @@
+# Copy this file to .github/workflows/aks-deploy.yaml at the REPO ROOT.
+# Required GitHub secrets (from `terraform output`):
+#   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID
+
+name: AKS Deploy
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'projects/03-aks-cicd/app/**'
+      - 'projects/03-aks-cicd/k8s/**'
+      - '.github/workflows/aks-deploy.yaml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write   # required for OIDC
+  contents: read
+
+env:
+  PROJECT_DIR: projects/03-aks-cicd
+  RESOURCE_GROUP: rg-gitops
+  AKS_NAME: aks-gitops
+  IMAGE_NAME: hello
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login (OIDC, no client secret)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Resolve ACR name
+        id: acr
+        run: |
+          ACR=$(az acr list -g $RESOURCE_GROUP --query "[0].name" -o tsv)
+          echo "name=$ACR" >> $GITHUB_OUTPUT
+          echo "login_server=$ACR.azurecr.io" >> $GITHUB_OUTPUT
+
+      # ACR Tasks (`az acr build`) is disabled on free-trial / credit subscriptions,
+      # so we build on the GHA runner and docker-push instead. AcrPush role on the
+      # gha_deploy UAMI authorizes the push.
+      - name: Login to ACR
+        run: az acr login -n ${{ steps.acr.outputs.name }}
+
+      - name: Build & push image
+        run: |
+          IMAGE=${{ steps.acr.outputs.login_server }}/$IMAGE_NAME
+          docker build \
+            -t $IMAGE:${{ github.sha }} \
+            -t $IMAGE:latest \
+            $PROJECT_DIR/app
+          docker push $IMAGE:${{ github.sha }}
+          docker push $IMAGE:latest
+
+      - name: Get AKS admin kubeconfig
+        run: |
+          az aks get-credentials \
+            -g $RESOURCE_GROUP \
+            -n $AKS_NAME \
+            --admin --overwrite-existing
+
+      - name: Render manifests with image tag
+        run: |
+          sed -i "s|REPLACE_ACR/hello:v1|${{ steps.acr.outputs.login_server }}/$IMAGE_NAME:${{ github.sha }}|g" \
+            $PROJECT_DIR/k8s/deployment.yaml
+
+      - name: kubectl apply
+        run: |
+          kubectl apply -f $PROJECT_DIR/k8s/service.yaml
+          kubectl apply -f $PROJECT_DIR/k8s/deployment.yaml
+
+      - name: Wait for rollout
+        run: kubectl rollout status deploy/hello --timeout=180s

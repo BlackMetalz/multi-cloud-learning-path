@@ -41,7 +41,7 @@ Restart shell or `source ~/.zshrc`, then:
 az vm <TAB><TAB>     → create  delete  list  show  start  stop  restart ...
 az vm create --<TAB> → --name  --resource-group  --image  --size ...
 ```
-```
+
 
 ## Login & Environment Setup
 
@@ -54,28 +54,21 @@ az login --use-device-code
 
 # Login with service principal (CI/CD)
 az login --service-principal -u <app-id> -p <password> --tenant <tenant-id>
-```
 
-```bash
 # Check who you are
 az account show
 
 # more detail bro
-```
-az account show --query '{name:name, id:id, user:user.name}' -o table
-Name                  User
---------------------  ------------------------
-Azure subscription 1  your-account@outlook.com.vn
-```
-
+az account show --query '{Name:name, SubId:id, User:user.name}' -o table
+Name                  SubId                                 User
+--------------------  ------------------------------------  ------------------------
+Azure subscription 1  your-sub-id0here                      your-account@outlook.com
 # List all subscriptions
 az account list --output table
 
 # Switch subscription
 az account set --subscription "my-subscription-name-or-id"
-```
 
-```bash
 # Set default resource group & location (so you don't repeat them every command)
 az configure --defaults group=rg-myapp location=southeastasia
 
