@@ -1,0 +1,113 @@
+# Azure DevOps multi-stage pipeline for Bicep deployment.
+# Setup steps: see projects/04-bicep-azdo/pipelines/README.md
+
+trigger:
+  branches:
+    include: [main]
+  paths:
+    include:
+      - 'projects/04-bicep-azdo/bicep/**'
+      - 'projects/04-bicep-azdo/pipelines/**'
+
+pr:
+  branches:
+    include: [main]
+  paths:
+    include:
+      - 'projects/04-bicep-azdo/bicep/**'
+
+variables:
+  # Variable Group "bicep-lab-vars" — set up in ADO → Pipelines → Library.
+  # Required vars in the group:
+  #   AZURE_SC_NAME           (name of the Azure Service Connection, WIF mode)
+  #   AZURE_SUBSCRIPTION_ID
+  #   LOCATION                (e.g. southeastasia)
+  - group: bicep-lab-vars
+  - name: bicepRoot
+    value: projects/04-bicep-azdo/bicep
+  - name: paramFile
+    value: params/dev.bicepparam
+
+stages:
+  # ─── Stage 1: Validate ───────────────────────────────────────
+  - stage: Validate
+    displayName: 'Validate (lint + what-if)'
+    jobs:
+      - job: validate
+        displayName: 'Bicep lint + what-if preview'
+        pool:
+          vmImage: ubuntu-latest
+        steps:
+          - checkout: self
+            displayName: 'Checkout source'
+
+          - task: AzureCLI@2
+            displayName: 'az bicep build (lint + transpile)'
+            inputs:
+              azureSubscription: $(AZURE_SC_NAME)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az bicep version
+                az bicep build --file $(bicepRoot)/main.bicep
+                echo "Compiled ARM template:"
+                ls -la $(bicepRoot)/main.json
+
+          - task: AzureCLI@2
+            displayName: 'az deployment sub what-if'
+            inputs:
+              azureSubscription: $(AZURE_SC_NAME)
+              scriptType: bash
+              scriptLocation: inlineScript
+              inlineScript: |
+                set -euo pipefail
+                az deployment sub what-if \
+                  --location $(LOCATION) \
+                  --template-file $(bicepRoot)/main.bicep \
+                  --parameters $(bicepRoot)/$(paramFile)
+
+  # ─── Stage 2: Deploy → dev (gated by manual approval) ────────
+  - stage: Deploy_dev
+    displayName: 'Deploy → dev'
+    dependsOn: Validate
+    condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+    jobs:
+      - deployment: deploy_dev
+        displayName: 'Deploy Bicep to dev'
+        pool:
+          vmImage: ubuntu-latest
+        # Environment "bicep-lab-dev" must exist in ADO with an Approval check.
+        environment: bicep-lab-dev
+        strategy:
+          runOnce:
+            deploy:
+              steps:
+                - checkout: self
+                  displayName: 'Checkout source'
+
+                - task: AzureCLI@2
+                  displayName: 'az deployment sub create'
+                  inputs:
+                    azureSubscription: $(AZURE_SC_NAME)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      set -euo pipefail
+                      az deployment sub create \
+                        --name bicep-lab-$(Build.BuildId) \
+                        --location $(LOCATION) \
+                        --template-file $(bicepRoot)/main.bicep \
+                        --parameters $(bicepRoot)/$(paramFile)
+
+                - task: AzureCLI@2
+                  displayName: 'Print outputs'
+                  inputs:
+                    azureSubscription: $(AZURE_SC_NAME)
+                    scriptType: bash
+                    scriptLocation: inlineScript
+                    inlineScript: |
+                      az deployment sub show \
+                        --name bicep-lab-$(Build.BuildId) \
+                        --query properties.outputs \
+                        -o jsonc

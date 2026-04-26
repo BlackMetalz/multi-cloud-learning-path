@@ -1,0 +1,11 @@
+subscription_id = "your-azure-subscription-id"
+project_name    = "backup-lab"
+location        = "Southeast Asia"
+
+# Pre-flight: az vm list-skus -l southeastasia --size Standard_B1s --query "[?length(restrictions)==\`0\`].name" -o tsv
+vm_size = "Standard_B1s"
+
+# Add yourself + others by UPN (email format)
+operator_group_members = [
+  # "kien@yourtenant.onmicrosoft.com"
+]

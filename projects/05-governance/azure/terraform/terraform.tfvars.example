@@ -1,0 +1,5 @@
+subscription_id = "your-azure-subscription-id"
+alert_email     = "your-email@example.com"
+
+allowed_locations  = ["southeastasia", "eastasia"]
+monthly_budget_usd = 50

@@ -1,0 +1,11 @@
+subscription_id = "your-azure-subscription-id"
+project_name    = "storage-lab"
+location        = "Southeast Asia"
+
+# Try changing this and observe the cost/durability tradeoff
+# LRS  = 3 copies in 1 datacenter        (cheapest)
+# ZRS  = 3 copies across 3 zones (region)
+# GRS  = LRS + async copy to paired region
+# RAGRS = GRS with read access on secondary
+# GZRS = ZRS + async copy to paired region
+replication_type = "LRS"

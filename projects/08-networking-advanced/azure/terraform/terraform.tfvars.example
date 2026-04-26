@@ -1,0 +1,12 @@
+subscription_id = "your-azure-subscription-id"
+project_name    = "net-lab"
+
+primary_location   = "Southeast Asia"
+secondary_location = "East Asia"
+
+# Tên zone không cần own thật — chỉ để học cú pháp record
+dns_zone_name = "lab.kien.dev"
+
+# Toggle ON khi học, OFF để tiết kiệm
+enable_front_door  = false # ~$1.20/day
+enable_vpn_gateway = false # ~$2.40/day Basic, lại còn tạo lâu ~30 phút
