@@ -40,7 +40,7 @@ resource "azurerm_policy_definition" "deny_untagged_rg" {
 
 # --- Initiative gom 3 policies ---
 
-resource "azurerm_policy_set_definition" "baseline" {
+resource "azurerm_management_group_policy_set_definition" "baseline" {
   name                = "baseline-governance"
   policy_type         = "Custom"
   display_name        = "Baseline Governance Initiative"
@@ -101,7 +101,7 @@ resource "azurerm_management_group_policy_assignment" "baseline" {
   name                 = "baseline-nonprod"
   display_name         = "Baseline Governance — nonprod"
   management_group_id  = azurerm_management_group.nonprod.id
-  policy_definition_id = azurerm_policy_set_definition.baseline.id
+  policy_definition_id = azurerm_management_group_policy_set_definition.baseline.id
 
   parameters = jsonencode({
     allowedLocations = {

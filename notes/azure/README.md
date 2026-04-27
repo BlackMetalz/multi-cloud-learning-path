@@ -136,3 +136,15 @@ Tổng số resource (khi bật full toggles)
 - Native `IaC` for Azure
 - `az deployment sub what-if` = `terraform plan`
 - No need to manage state like terraform.
+
+### Governance
+- Manage your project
+- Set azurerm_consumption_budget_subscription resource as IAC 
+- Allow specific location via resource azurerm_management_group_policy_assignment
+- azurerm_monitor_activity_log_alert: Fire when a policy assignment is created/updated/deleted
+- azurerm_policy_definition.deny_untagged_rg: Deny resource groups without Environment tag
+
+- Activity log scope rules: alert phải ở scope mà event xuất hiện. MG(management group) event không bubble xuống sub.
+- Free sub restriction: test-notifications API blocked, nhưng real alerts work — đừng nhầm 2 cái.
+- Latency: 5-10 phút từ trigger tới email là bình thường, không phải config sai. Nếu 15+ phút mới worry.
+- "Alert không fire mặc dù event xảy ra — debug thế nào?" → check scope mismatch.

@@ -7,7 +7,7 @@ output "mg_nonprod_id" {
 }
 
 output "policy_initiative_id" {
-  value = azurerm_policy_set_definition.baseline.id
+  value = azurerm_management_group_policy_set_definition.baseline.id
 }
 
 output "action_group_id" {

@@ -73,3 +73,11 @@ bicep/
 ```bash
 az group delete -n rg-bicep-lab-dev --yes --no-wait
 ```
+
+Verify after sometimes:
+```bash
+az resource list -g $RG -o table
+(ResourceGroupNotFound) Resource group 'rg-bicep-lab-dev' could not be found.
+Code: ResourceGroupNotFound
+Message: Resource group 'rg-bicep-lab-dev' could not be found.
+```
