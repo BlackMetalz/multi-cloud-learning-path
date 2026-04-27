@@ -72,8 +72,25 @@ Azure có thêm 1 cấp so với AWS/GCP — `Storage Account` không có khái 
 
 | Category | Azure | AWS | GCP | Self-Hosted | SaaS |
 |---|---|---|---|---|---|
-| IaC (native) | ARM / Bicep | CloudFormation | Deployment Manager | Ansible | Terraform Cloud / Pulumi Cloud |
+| IaC (native) | ARM / Bicep | CloudFormation / CDK / SAM | Deployment Manager (legacy) / Infrastructure Manager | Ansible | Terraform Cloud / Pulumi Cloud |
 | CI/CD | Azure DevOps | CodePipeline | Cloud Build | Jenkins / GitLab CI | GitHub Actions / CircleCI |
+
+### Công cụ IaC native
+
+Mỗi cloud đều có IaC "chính chủ" của riêng mình, nhưng độ trưởng thành và hướng đi rất khác nhau.
+
+| Cloud | Tool | Format | Trạng thái |
+|---|---|---|---|
+| Azure | ARM Templates | JSON | Legacy — dài dòng, khó viết tay |
+| Azure | **Bicep** | DSL (biên dịch ra ARM) | **Recommended** — first-party, support API Azure mới nhanh nhất |
+| AWS | **CloudFormation** | YAML / JSON | **Recommended** — mature, coverage service rất rộng |
+| AWS | CDK | TypeScript / Python / Go / Java | Lập trình — sinh ra CloudFormation ngầm bên dưới |
+| AWS | SAM | YAML | Superset của CloudFormation, chuyên cho serverless |
+| GCP | Deployment Manager | YAML / Jinja / Python | **Deprecated** — đang sunset, không dùng cho project mới |
+| GCP | Config Connector | Kubernetes CRDs | Ít dùng — chỉ hợp lý với team xài GKE là chính |
+| GCP | **Infrastructure Manager** | HCL (managed Terraform) | **Recommended** — Google chính thức xem Terraform là chuẩn IaC |
+
+**Kết luận**: GCP gần như "thừa nhận" Terraform là chuẩn IaC của họ. AWS và Azure đều có alternative native mạnh (CloudFormation/CDK, Bicep). Rule of thumb — chọn native nếu team chỉ làm single-cloud và muốn support service mới ngày 1; chọn Terraform/Pulumi nếu multi-cloud hoặc muốn 1 tool dùng chung cho tất cả.
 
 ## Messaging & Streaming
 

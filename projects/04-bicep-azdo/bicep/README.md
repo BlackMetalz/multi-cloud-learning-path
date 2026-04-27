@@ -29,6 +29,22 @@ az deployment sub show \
   --query properties.outputs
 ```
 
+Quick verify via cli: 
+```bash
+RG=rg-bicep-lab-dev
+az resource list -g $RG -o table
+```
+
+Expected output:
+```
+Name                         ResourceGroup     Location       Type                               Status
+---------------------------  ----------------  -------------  ---------------------------------  ---------
+stbiceplab3sxao63f2ylls      rg-bicep-lab-dev  southeastasia  Microsoft.Storage/storageAccounts  Succeeded
+plan-bicep-lab               rg-bicep-lab-dev  southeastasia  Microsoft.Web/serverFarms          Succeeded
+app-bicep-lab-3sxao63f2ylls  rg-bicep-lab-dev  southeastasia  Microsoft.Web/sites                Succeeded
+kv-biceplab-fgfol4gsz7p      rg-bicep-lab-dev  southeastasia  Microsoft.KeyVault/vaults          Succeeded
+```
+
 ### File layout
 
 ```

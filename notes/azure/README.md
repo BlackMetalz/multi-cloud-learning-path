@@ -130,3 +130,9 @@ Tổng số resource (khi bật full toggles)
 3. Toggle enable_bastion / enable_app_gateway — tiết kiệm tiền khi không học (Bastion ~$0.19/h, AppGW v2 ~$10/ngày).
 4. NSG rule "AllowSSHFromMyIP" — tự lấy IP của bro qua data.http, dev-only; production thật phải tắt và chỉ dùng Bastion.
 5. Hub-spoke peering 2 chiều nhưng allow_gateway_transit = false → đây là pattern peering đơn giản, không phải topology có VPN/ER gateway ở hub.
+
+
+### Azure Bicep
+- Native `IaC` for Azure
+- `az deployment sub what-if` = `terraform plan`
+- No need to manage state like terraform.

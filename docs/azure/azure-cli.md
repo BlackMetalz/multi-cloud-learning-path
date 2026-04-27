@@ -322,6 +322,57 @@ az monitor metrics alert create \
   --description "CPU over 80%"
 ```
 
+### 9. Inspect deployed resources (skip the Portal)
+
+Don't want to open the Portal? These commands show almost everything you'd see in the UI. Examples below target the [projects/04-bicep-azdo](../../projects/04-bicep-azdo/bicep/) RG (`rg-bicep-lab-dev` — Storage Account, Key Vault, App Service Plan + Web App).
+
+```bash
+RG=rg-bicep-lab-dev
+
+# 1. List EVERY resource in a RG — the most useful "replace the Portal" command
+az resource list -g $RG -o table
+
+# Trim the output — Name + Type only
+az resource list -g $RG --query "[].{Name:name, Type:type}" -o table
+
+# Count by resource type
+az resource list -g $RG --query "[].type" -o tsv | sort | uniq -c
+
+# 2. Subscription-scope deployment status (for main.bicep targetScope='subscription')
+az deployment sub list \
+  --query "[].{Name:name, State:properties.provisioningState, Time:properties.timestamp}" \
+  -o table
+
+# Outputs of a specific deployment (Web App URL, Storage name, …)
+az deployment sub show -n main --query properties.outputs
+
+# Nested RG-scope deployments — each Bicep module = one deployment
+az deployment group list -g $RG -o table
+
+# 3. Quick per-service probes
+
+# Web App — URL + state, then curl it
+az webapp list -g $RG \
+  --query "[].{Name:name, Host:defaultHostName, State:state}" -o table
+
+URL=$(az webapp list -g $RG --query "[0].defaultHostName" -o tsv)
+curl -sI https://$URL | head -1
+
+# Storage account — sku + blob endpoint
+az storage account list -g $RG \
+  --query "[].{Name:name, Sku:sku.name, Blob:primaryEndpoints.blob}" -o table
+
+# Key Vault — URI + whether RBAC mode is on
+az keyvault list -g $RG \
+  --query "[].{Name:name, Uri:properties.vaultUri, RBAC:properties.enableRbacAuthorization}" \
+  -o table
+
+# 4. Resource Graph — SQL-like queries across RGs / subscriptions
+az graph query -q "Resources | where resourceGroup == '$RG' | project name, type, location" -o table
+```
+
+> **Tip**: `az resource list -g <rg> -o table` is the single command worth memorizing — run it right after `terraform apply` / `az deployment sub create` to verify IaC produced what you expected, no Portal needed.
+
 ## Azure CLI vs PowerShell — AZ-104 / AZ-400 Exam
 
 Both appear in exams. Same operations, different syntax:

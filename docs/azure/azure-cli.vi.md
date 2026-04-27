@@ -321,6 +321,57 @@ az monitor metrics alert create \
   --description "CPU over 80%"
 ```
 
+### 9. Kiểm tra resource đã deploy (thay UI)
+
+Lười mở Portal? Mấy command này show được gần như mọi thứ. Ví dụ dưới đây chạy trên RG của [projects/04-bicep-azdo](../../projects/04-bicep-azdo/bicep/) (`rg-bicep-lab-dev` — chứa Storage Account, Key Vault, App Service Plan + Web App).
+
+```bash
+RG=rg-bicep-lab-dev
+
+# 1. List TẤT CẢ resource trong 1 RG — command thay UI hay nhất
+az resource list -g $RG -o table
+
+# Gọn hơn — chỉ Name + Type
+az resource list -g $RG --query "[].{Name:name, Type:type}" -o table
+
+# Đếm theo loại resource
+az resource list -g $RG --query "[].type" -o tsv | sort | uniq -c
+
+# 2. Trạng thái deployment ở subscription scope (cho main.bicep targetScope='subscription')
+az deployment sub list \
+  --query "[].{Name:name, State:properties.provisioningState, Time:properties.timestamp}" \
+  -o table
+
+# Outputs của deployment cụ thể (URL Web App, tên Storage, …)
+az deployment sub show -n main --query properties.outputs
+
+# Deployment lồng bên trong RG — mỗi module Bicep = 1 deployment
+az deployment group list -g $RG -o table
+
+# 3. Probe nhanh từng service
+
+# Web App — URL + state, rồi curl thử luôn
+az webapp list -g $RG \
+  --query "[].{Name:name, Host:defaultHostName, State:state}" -o table
+
+URL=$(az webapp list -g $RG --query "[0].defaultHostName" -o tsv)
+curl -sI https://$URL | head -1
+
+# Storage account — sku + endpoint blob
+az storage account list -g $RG \
+  --query "[].{Name:name, Sku:sku.name, Blob:primaryEndpoints.blob}" -o table
+
+# Key Vault — URI + có bật RBAC mode không
+az keyvault list -g $RG \
+  --query "[].{Name:name, Uri:properties.vaultUri, RBAC:properties.enableRbacAuthorization}" \
+  -o table
+
+# 4. Resource Graph — query kiểu SQL across nhiều RG / subscription
+az graph query -q "Resources | where resourceGroup == '$RG' | project name, type, location" -o table
+```
+
+> **Mẹo**: `az resource list -g <rg> -o table` là command đáng nhớ nhất — chạy ngay sau `terraform apply` / `az deployment sub create` để verify IaC tạo đúng những gì mình expect, không cần mở Portal.
+
 ## Azure CLI vs PowerShell — Thi AZ-104 / AZ-400
 
 Cả hai đều xuất hiện trong đề thi. Cùng thao tác, khác cú pháp:

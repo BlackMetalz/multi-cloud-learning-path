@@ -72,8 +72,25 @@ One Azure Storage Account holds multiple Blob Containers (plus File shares, Queu
 
 | Category | Azure | AWS | GCP | Self-Hosted | SaaS |
 |---|---|---|---|---|---|
-| IaC (native) | ARM / Bicep | CloudFormation | Deployment Manager | Ansible | Terraform Cloud / Pulumi Cloud |
+| IaC (native) | ARM / Bicep | CloudFormation / CDK / SAM | Deployment Manager (legacy) / Infrastructure Manager | Ansible | Terraform Cloud / Pulumi Cloud |
 | CI/CD | Azure DevOps | CodePipeline | Cloud Build | Jenkins / GitLab CI | GitHub Actions / CircleCI |
+
+### Native IaC Tools
+
+Each cloud ships its own first-party IaC, but maturity and direction differ a lot.
+
+| Cloud | Tool | Format | Status |
+|---|---|---|---|
+| Azure | ARM Templates | JSON | Legacy — verbose, hard to write by hand |
+| Azure | **Bicep** | DSL (transpiles to ARM) | **Recommended** — first-party, fastest to support new Azure APIs |
+| AWS | **CloudFormation** | YAML / JSON | **Recommended** — mature, deep service coverage |
+| AWS | CDK | TypeScript / Python / Go / Java | Programmatic — synthesizes CloudFormation under the hood |
+| AWS | SAM | YAML | Serverless-focused superset of CloudFormation |
+| GCP | Deployment Manager | YAML / Jinja / Python | **Deprecated** — sunsetting, not for new projects |
+| GCP | Config Connector | Kubernetes CRDs | Niche — only sensible for GKE-centric teams |
+| GCP | **Infrastructure Manager** | HCL (managed Terraform) | **Recommended** — Google's official direction is Terraform |
+
+**Takeaway**: GCP effectively endorses Terraform as its IaC story. AWS and Azure both have strong native alternatives (CloudFormation/CDK, Bicep). Rule of thumb — go native for single-cloud teams chasing day-1 service support; go Terraform/Pulumi for multi-cloud or when you want one tool for everything.
 
 ## Messaging & Streaming
 

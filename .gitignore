@@ -4,6 +4,11 @@
 .terraform/
 .terraform.lock.hcl
 terraform.tfvars
+tfplan
+
+# Bicep — compiled ARM template, regenerated từ .bicep source
+**/bicep/**/main.json
+**/bicep/**/modules/*.json
 
 # OS
 .DS_Store
