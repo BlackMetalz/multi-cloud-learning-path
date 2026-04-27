@@ -148,3 +148,11 @@ Tổng số resource (khi bật full toggles)
 - Free sub restriction: test-notifications API blocked, nhưng real alerts work — đừng nhầm 2 cái.
 - Latency: 5-10 phút từ trigger tới email là bình thường, không phải config sai. Nếu 15+ phút mới worry.
 - "Alert không fire mặc dù event xảy ra — debug thế nào?" → check scope mismatch.
+
+### Soft-delete
+
+- "Why can't I delete this vault?" → soft-delete still has items. Hẹ hẹ hẹ
+- Backup vault soft-delete giờ AlwaysOn: chỉ disable được qua CLI (az backup vault backup-properties set --soft-delete-feature-state Disable), portal mới ẩn option
+- Disaster sim trong Terraform-managed lab: đụng tay ngoài TF → orphan state → cleanup phải tay từng layer
+- NIC + Disk leftover: az vm delete không cascade, default keep — luôn nhớ delete kèm
+- Owner override custom role: test denial cần SP scoped, không thể tự test bằng tài khoản chính

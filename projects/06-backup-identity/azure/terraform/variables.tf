@@ -32,7 +32,7 @@ variable "subnet_cidr" {
 
 variable "vm_size" {
   description = "B1s ~$8/mo cho lab. Pre-flight check trước khi đổi region."
-  default     = "Standard_B1s"
+  default     = "Standard_D2alds_v7"
 }
 
 variable "vm_admin_username" {

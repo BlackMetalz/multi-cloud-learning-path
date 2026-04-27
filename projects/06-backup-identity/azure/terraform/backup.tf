@@ -8,8 +8,9 @@ resource "azurerm_recovery_services_vault" "main" {
 
   storage_mode_type = "GeoRedundant" # default; can switch to LocallyRedundant for cheaper
 
-  # Allow `terraform destroy` clean up protected items.
-  soft_delete_enabled = false
+  # Soft delete is always-on now (Azure "secure by default" policy, 2024+).
+  # `provider.features.recovery_service.purge_protected_items_from_vault_on_destroy = true`
+  # ở providers.tf đã handle clean destroy bypass soft-delete.
 
   tags = local.common_tags
 }
