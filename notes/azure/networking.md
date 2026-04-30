@@ -62,6 +62,17 @@ Direct Connect               →   ExpressRoute
 | On-prem ↔ Azure (internet) | VPN Gateway |
 | On-prem ↔ Azure (dedicated) | ExpressRoute |
 
+### Gateway Transit (peering dùng chung VPN/ER Gateway)
+
+VNet không có gateway muốn đi on-prem qua gateway của VNet khác → bật **cặp** setting trên peering:
+
+| VNet | Setting |
+|------|---------|
+| VNet **có** gateway (hub) | `Allow Gateway Transit` |
+| VNet **không** gateway (spoke) | `Use Remote Gateway` |
+
+Thiếu 1 trong 2 → traffic on-prem không route. Mỗi spoke chỉ dùng được 1 remote gateway.
+
 ## DNS
 
 ```
