@@ -4,7 +4,10 @@
 cd projects/07-storage-deepdive/azure/terraform
 az login --use-device-code
 cp terraform.tfvars.example terraform.tfvars
-terraform init && terraform apply
+terraform init
+terraform plan -out=tfplan
+terraform apply "tfplan"
+# Apply complete! Resources: 8 added, 0 changed, 0 destroyed.
 ```
 
 ### File layout
@@ -30,6 +33,7 @@ SA=$(terraform output -raw storage_account_name)
 # 1. Versioning + soft delete
 az storage account blob-service-properties show \
   --account-name $SA --query "{ver:isVersioningEnabled, sd:deleteRetentionPolicy.enabled, csd:containerDeleteRetentionPolicy.enabled}" -o jsonc
+
 # Expect: {"ver": true, "sd": true, "csd": true}
 
 # 2. Lifecycle policy
@@ -41,8 +45,9 @@ curl "$(terraform output -raw logs_sas_url)&restype=container&comp=list" | head 
 
 ### Step 2 — Soft delete recovery
 
+
+1. Upload + delete + recover
 ```bash
-# Upload + delete + recover
 echo "hello v1" > /tmp/file.txt
 az storage blob upload \
   --account-name $SA \
@@ -50,95 +55,38 @@ az storage blob upload \
   --name test/file.txt \
   --file /tmp/file.txt \
   --auth-mode login
+```
 
+Verify ![uploaded](../../../../images/azure/04.png)
+
+2. Delete it
+```bash
 az storage blob delete \
   --account-name $SA \
   --container-name logs \
   --name test/file.txt \
   --auth-mode login
+```
 
-# List including deleted
+3. List versions + deleted state
+
+> **Lưu ý**: container có **versioning enabled** + **soft delete enabled** đồng thời. Khi versioning ON, delete tạo **delete marker** (version mới), không đẩy blob vào soft-delete state. Phải `--include vd` để thấy đủ.
+
+```bash
 az storage blob list \
   --account-name $SA \
   --container-name logs \
-  --include d \
+  --include vd \
   --auth-mode login \
-  --query "[].{name:name, deleted:deleted}" -o table
-
-# Undelete
-az storage blob undelete \
-  --account-name $SA \
-  --container-name logs \
-  --name test/file.txt \
-  --auth-mode login
+  --prefix test/file.txt \
+  --query "[].{name:name, version:versionId, current:isCurrentVersion, deleted:deleted}" \
+  -o table
+# Expect: 2 rows
+#   current=True  → delete marker (blob "đã xoá")
+#   current=False → version cũ còn nguyên
 ```
 
-### Step 3 — Versioning
-
-```bash
-# Upload v1
-echo "version 1" > /tmp/v.txt
-az storage blob upload --account-name $SA -c logs -n test/v.txt -f /tmp/v.txt --auth-mode login --overwrite
-
-# Upload v2 (same name)
-echo "version 2" > /tmp/v.txt
-az storage blob upload --account-name $SA -c logs -n test/v.txt -f /tmp/v.txt --auth-mode login --overwrite
-
-# List all versions
-az storage blob list --account-name $SA -c logs --include v --auth-mode login \
-  --prefix test/v.txt --query "[].{name:name, ver:versionId, current:isCurrentVersion}" -o table
-```
-
-### Step 4 — Test SAS
-
-```bash
-SAS_URL=$(terraform output -raw logs_sas_url)
-
-# ✓ List should work
-curl "${SAS_URL}&restype=container&comp=list" | head -c 400
-
-# ✗ Write should fail (403)
-curl -X PUT "${SAS_URL%\?*}/test-write.txt?${SAS_URL#*\?}" \
-  -H "x-ms-blob-type: BlockBlob" \
-  -d "should fail" -v 2>&1 | grep "HTTP/"
-# Expect: 403 (read-only token)
-```
-
-### Step 6 — Immutability (portal)
-
-> Cảnh báo: nếu chọn **Locked**, policy không bao giờ có thể giảm thời gian — container không thể xoá đến hết retention. Test nên dùng **Unlocked** với 1 day retention.
-
-1. Portal → Storage account → Containers → `compliance` → ... → **Access policy**
-2. **+ Add policy** → Type: **Time-based retention** → Days: 1 → Save (state: **Unlocked**)
-3. Upload 1 file vào container
-4. Try delete blob → ✗ blocked với error "Blob has immutability policy"
-5. Đợi 1 ngày sau → blob sẽ delete được
-
-### Step 7 — AzCopy
-
-```bash
-# Install on macOS
-brew install azcopy
-
-# Login với Entra ID
-azcopy login
-
-# Sync local dir → blob (resumable, parallelized)
-mkdir -p /tmp/many-files && for i in {1..50}; do
-  echo "file $i" > /tmp/many-files/file-$i.txt
-done
-
-azcopy sync /tmp/many-files \
-  "https://$SA.blob.core.windows.net/logs/many-files" \
-  --recursive
-
-# So sánh: az CLI batch upload (chậm hơn nhiều file nhỏ)
-time az storage blob upload-batch \
-  --account-name $SA \
-  --destination logs/batch-test \
-  --source /tmp/many-files \
-  --auth-mode login
-```
+> **Pattern AZ-104**: container chỉ có soft delete (không versioning) → `az storage blob undelete` direct. Có versioning → version copy. Exam hay hỏi *"Container có cả 2 setting → recover blob đã xoá thế nào?"* → answer là version copy.
 
 ### Cleanup
 
