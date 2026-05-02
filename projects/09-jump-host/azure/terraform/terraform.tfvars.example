@@ -1,0 +1,18 @@
+subscription_id = "your-azure-subscription-id"
+project_name    = "jump-host"
+location        = "Southeast Asia"
+
+# Pre-flight: az vm list-skus -l southeastasia --size Standard_D2alds_v7 \
+#   --query "[?length(restrictions)==\`0\`].name" -o tsv
+vm_size           = "Standard_D2alds_v7"
+# Limited by subscription xD
+workload_vm_count = 1 
+
+# Để rỗng → Terraform tự dùng public IP hiện tại của máy bro.
+# Hoặc chỉ định explicit (home + office + VPN exit):
+# allowed_ssh_ips = [
+#   "203.0.113.5/32",      # home
+#   "198.51.100.0/24",     # office subnet
+#   "192.0.2.42/32",       # VPN exit
+# ]
+allowed_ssh_ips = []
