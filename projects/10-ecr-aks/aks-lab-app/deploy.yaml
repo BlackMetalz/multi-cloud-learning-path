@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-aks
+  labels:
+    app: hello-aks
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: hello-aks
+  template:
+    metadata:
+      labels:
+        app: hello-aks
+    spec:
+      containers:
+        - name: hello
+          image: acrakslab20546.azurecr.io/hello-aks:v2
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-aks
+spec:
+  type: ClusterIP
+  selector:
+    app: hello-aks
+  ports:
+    - port: 80
+      targetPort: 80

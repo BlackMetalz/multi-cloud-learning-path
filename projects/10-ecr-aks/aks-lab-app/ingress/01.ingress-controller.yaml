@@ -1,0 +1,10 @@
+  apiVersion: approuting.kubernetes.azure.com/v1alpha1
+  kind: NginxIngressController
+  metadata:
+    name: default
+  spec:
+    ingressClassName: webapprouting.kubernetes.azure.com
+    controllerNamePrefix: nginx
+    loadBalancerAnnotations:
+      service.beta.kubernetes.io/azure-load-balancer-resource-group: MC_rg-aks-lab_aks-lab_southeastasia
+      service.beta.kubernetes.io/azure-pip-name: pip-ingress

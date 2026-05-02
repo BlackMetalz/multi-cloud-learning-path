@@ -1,0 +1,19 @@
+  apiVersion: networking.k8s.io/v1
+  kind: Ingress
+  metadata:
+    name: hello-aks
+    annotations:
+      nginx.ingress.kubernetes.io/rewrite-target: /
+  spec:
+    ingressClassName: webapprouting.kubernetes.azure.com
+    rules:
+      - host: kienlt.com    # ← thay bằng domain bro sở hữu
+        http:
+          paths:
+            - path: /
+              pathType: Prefix
+              backend:
+                service:
+                  name: hello-aks
+                  port:
+                    number: 80

@@ -1,0 +1,17 @@
+  apiVersion: v1
+  kind: Service
+  metadata:
+    name: hello-aks
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-resource-group: MC_rg-aks-lab_aks-lab_southeastasia
+      service.beta.kubernetes.io/azure-pip-name: pip-hello-aks
+      # Bonus: cấp luôn DNS Azure
+      service.beta.kubernetes.io/azure-dns-label-name: hello-aks-kien
+  spec:
+    type: LoadBalancer
+    selector:
+      app: hello-aks
+    ports:
+      - port: 80
+        targetPort: 80
+    loadBalancerIP: 20.212.25.233
