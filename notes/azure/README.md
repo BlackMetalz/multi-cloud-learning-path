@@ -156,3 +156,27 @@ Tổng số resource (khi bật full toggles)
 - Disaster sim trong Terraform-managed lab: đụng tay ngoài TF → orphan state → cleanup phải tay từng layer
 - NIC + Disk leftover: az vm delete không cascade, default keep — luôn nhớ delete kèm
 - Owner override custom role: test denial cần SP scoped, không thể tự test bằng tài khoản chính
+
+### Deployment slot
+Deployment Slot là môi trường staging riêng biệt trong cùng một App Service (Pro+ tier).
+
+Cách dùng:
+
+- Deploy code lên slot staging thay vì production
+- Test/warm-up xong → swap 2 slot với nhau (zero downtime)
+- Nếu lỗi → swap ngược lại ngay lập tức (instant rollback)
+
+Key points:
+
+- Mỗi slot có URL riêng: app-staging.azurewebsites.net
+- App settings có thể sticky (không bị swap) hoặc swap cùng code
+- Khi swap, Azure route traffic dần dần → không có downtime
+- Free tier không có slot, cần ít nhất Standard
+
+Swap flow:
+
+```
+code push → staging slot → smoke test → swap → production
+                                          ↑
+                                    (rollback nếu lỗi)
+```
