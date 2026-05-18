@@ -5,7 +5,7 @@
 ```
 AWS                              Azure
 ───────────────────────────────────────────────────
-(không có)                   →   Storage Account (layer bọc ngoài)
+(No)                         →   Storage Account (wrap layer)
 S3 Bucket                    →   Blob Container
 S3 Object                    →   Blob
 S3 Bucket Policy             →   Container Access Policy / RBAC
@@ -13,7 +13,7 @@ S3 Lifecycle Rules           →   Lifecycle Management
 S3 Versioning                →   Blob Versioning
 S3 Storage Classes           →   Access Tiers (Hot/Cool/Archive)
 S3 Presigned URL             →   SAS Token
-S3 Static Website            →   Static Website (trong Blob)
+S3 Static Website            →   Static Website (in Blob)
 ───────────────────────────────────────────────────
 EFS                          →   Azure Files
 SQS                          →   Queue Storage

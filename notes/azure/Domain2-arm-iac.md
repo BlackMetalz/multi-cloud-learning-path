@@ -1,6 +1,6 @@
 # ARM Template — Skip
 
-- **ARM Template** = CloudFormation của Azure (JSON, verbose, khó đọc)
+- **ARM Template** = CloudFormation của AWS (JSON, verbose, khó đọc)
 - **Bicep** = ARM nhưng syntax đẹp hơn (vẫn Azure-only)
 - **Verdict:** Dùng Terraform. ARM/Bicep chỉ để đọc hiểu legacy hoặc export từ Portal khi cần reverse-engineer.
 
